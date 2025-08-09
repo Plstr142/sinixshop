@@ -8,11 +8,13 @@ const {
   listby,
   searchFilters,
   update,
+  read,
 } = require("../controllers/product");
 
 // Endpoint
 router.post("/product", create);
 router.get("/products/:count", list);
+router.get("/product/:id", read);
 router.put("/product/:id", update);
 router.delete("/product/:id", remove);
 router.post("/productby", listby);

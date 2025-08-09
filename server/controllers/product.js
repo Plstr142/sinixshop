@@ -54,9 +54,64 @@ exports.list = async (req, res) => {
   }
 };
 
+exports.read = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const products = await prisma.product.findFirst({
+      where: {
+        id: Number(id),
+      },
+      // similary table join
+      include: {
+        category: true,
+        images: true,
+      },
+    });
+
+    res.send(products);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 exports.update = async (req, res) => {
   try {
-    res.send("Hello update product successfully!");
+    const { title, description, price, quantity, categoryId, images } =
+      req.body;
+    // console.log(title, description, price, quantity, images);
+
+    // clear images
+    await prisma.image.deleteMany({
+      where: {
+        productId: Number(req.params.id),
+      },
+    });
+
+    const product = await prisma.product.update({
+      where: {
+        id: Number(req.params.id),
+      },
+      data: {
+        title: title,
+        description: description,
+        price: parseFloat(price),
+        quantity: parseInt(quantity),
+        categoryId: parseInt(categoryId),
+        images: {
+          create: images.map((item) => ({
+            asset_id: item.asset_id,
+            public_id: item.public_id,
+            url: item.url,
+            secure_url: item.secure_url,
+          })),
+        },
+      },
+    });
+
+    // console.log(product);
+    res.send(product);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
@@ -84,16 +139,104 @@ exports.remove = async (req, res) => {
 
 exports.listby = async (req, res) => {
   try {
-    res.send("Hello listby product successfully!");
+    const { sort, order, limit } = req.body;
+    console.log(sort, order, limit);
+    const products = await prisma.product.findMany({
+      take: limit,
+      orderBy: { [sort]: order },
+      include: {
+        category: true,
+      },
+    });
+
+    res.send(products);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+const handleQuery = async (req, res, query) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        title: {
+          contains: query,
+        },
+      },
+      include: {
+        category: true,
+        images: true,
+      },
+    });
+
+    res.send(products);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+const handlePrice = async (req, res, priceRange) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        price: {
+          gte: priceRange[0],
+          lte: priceRange[1],
+        },
+      },
+      include: {
+        category: true,
+        images: true,
+      },
+    });
+    res.send(products);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+const handleCategory = async (req, res, categoryId) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        categoryId: {
+          in: categoryId.map((id) => Number(id)),
+        },
+      },
+      include: {
+        category: true,
+        images: true,
+      },
+    });
+    res.send(products);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 exports.searchFilters = async (req, res) => {
   try {
-    res.send("Hello searchfilters product successfully!");
+    const { query, category, price } = req.body;
+
+    if (query) {
+      console.log("query: ", query);
+      await handleQuery(req, res, query);
+    }
+    if (category) {
+      console.log("category: ", category);
+      await handleCategory(req, res, category);
+    }
+
+    if (price) {
+      console.log("price: ", price);
+      await handlePrice(req, res, price);
+    }
+
+    // res.send("Hello searchfilters product successfully!");
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
