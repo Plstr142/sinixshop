@@ -27,7 +27,7 @@ const Register = () => {
         try {
             const res = await axios.post("http://localhost:5000/api/register", form);
 
-            console.log(res)
+            console.log(res.data)
             toast.success(res.data)
         } catch (error) {
             const errorMessage = error.response?.data?.message
