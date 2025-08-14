@@ -35,7 +35,7 @@ exports.remove = async (req, res) => {
         id: Number(id),
       },
     });
-    res.send("Hello delete category");
+    res.send(category);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server error" });
